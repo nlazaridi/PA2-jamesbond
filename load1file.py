@@ -5,10 +5,12 @@ import matplotlib.pyplot as plt
 def get_dataset_name(file_name_with_dir):
     filename_without_dir = file_name_with_dir.split('/')[-1] #If you use windows change / with \\
     temp = filename_without_dir.split('_')[:-1]
+    print(temp)
     dataset_name = "_".join(temp)
+    print(dataset_name)
     return dataset_name
 
-filename_path = "/Users/iacopoermacora/Desktop/Final Project data min_max_scaling/Intra/train/task_motor_105923_1.h5"
+filename_path = "/Users/iacopoermacora/Final Project data min_max_scaling segmented/Intra/train/task_motor_105923_1_segment_43.h5"
 # Modify the file (replace this part with your own modification logic)
 with h5py.File(filename_path,'r') as f:
     dataset_name = get_dataset_name(filename_path)
