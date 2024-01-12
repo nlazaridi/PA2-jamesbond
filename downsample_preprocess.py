@@ -8,13 +8,15 @@ from sklearn.preprocessing import MinMaxScaler
 import h5py
 
 def get_dataset_name(file_name_with_dir):
-    filename_without_dir = file_name_with_dir.split('/')[-1] #If you use windows change / with \\
+    filename_without_dir = file_name_with_dir.split('\\')[-1] #If you use windows change / with \\
     temp = filename_without_dir.split('_')[:-1]
     dataset_name = "_".join(temp)
     return dataset_name
 
-def time_wise_min_max_scaling(matrix, feature_range=(0, 1)):
+def time_wise_min_max_scaling(matrix, max, min, feature_range=(0, 1)):
     scaler = MinMaxScaler(feature_range=feature_range)
+    scaler.data_max_ = max
+    scaler.data_min_ = min
     scaled_matrix = scaler.fit_transform(matrix.T).T  # Transpose for time-wise scaling
     return scaled_matrix
 
@@ -23,7 +25,7 @@ def time_wise_z_score_scaling(matrix):
     scaled_matrix = scaler.fit_transform(matrix.T).T  # Transpose for time-wise scaling
     return scaled_matrix
     
-def copy_and_modify_folder(original_folder, new_folder, scale_method):
+def copy_and_modify_folder(original_folder, new_folder, scale_method, value_max=None, value_min=None):
     # Copy the folder structure
     shutil.copytree(original_folder, new_folder)
 
@@ -68,7 +70,7 @@ def copy_and_modify_folder(original_folder, new_folder, scale_method):
     
                 if scale_method == 1:
                     # Apply time-wise min-max scaling
-                    scaled_matrix = time_wise_min_max_scaling(downsampled_signal)
+                    scaled_matrix = time_wise_min_max_scaling(downsampled_signal, max=value_max, min=value_min)
                 else:
                     # Apply time-wise Z-score scaling
                     scaled_matrix = time_wise_z_score_scaling(downsampled_signal)
@@ -107,9 +109,12 @@ def copy_and_modify_folder(original_folder, new_folder, scale_method):
             
 
 if __name__ == "__main__":
-    original_folder = "/Users/iacopoermacora/Desktop/Final Project data"
-    new_folder_a = "Final Project data min_max_scaling"
+    original_folder = "Final Project data\Intra"
+    new_folder_a = "Final Project data min_max_scaling\Intra"
     new_folder_b = "Final Project data score_scaling"
 
-    copy_and_modify_folder(original_folder, new_folder_a, 1)
-    copy_and_modify_folder(original_folder, new_folder_b, 0)
+    #CROSS MIN-MAX = -3.0254182492583936e-10, 7.247841216084794e-11
+    #INTRA MIN-MAX = -2.8972721444198157e-10, 3.144793453424555e-11
+
+    copy_and_modify_folder(original_folder, new_folder_a, 1, 3.144793453424555e-11, -2.8972721444198157e-10)
+    #copy_and_modify_folder(original_folder, new_folder_b, 0)
