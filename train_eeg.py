@@ -150,11 +150,11 @@ model = EEGNet(chunk_size=160,
             num_classes=4).to(device)
 
 # initialize optimizer
-#optimizer = torch.optim.Adam(model.parameters(),
-#                                lr=1e-3)  # official: weight_decay=5e-1
-optimizer = torch.optim.SGD(model.parameters(),lr=1e-3)
+optimizer = torch.optim.Adam(model.parameters(),
+                                lr=1e-3)  # official: weight_decay=5e-1
+#optimizer = torch.optim.SGD(model.parameters(),lr=1e-3)
 
-criterion = torch.nn.MSELoss()
+criterion = torch.nn.CrossEntropyLoss()
 
 num_epochs=50
 # Training loop
@@ -163,7 +163,21 @@ for epoch in range(num_epochs):
     i=0
     for batch, target in tqdm(train_dataloader):
         # Move the batch to the device (e.g., GPU)
+        
         inputs = batch.to(device)
+        # Define new mean and std
+        new_mean = 0
+        new_std = 1
+
+        # Reshape the tensor for mean and std calculations
+        reshaped_tensor = inputs.view(-1, inputs.size(-1))
+
+        # Scale the tensor
+        scaled_tensor = (reshaped_tensor - torch.mean(reshaped_tensor)) / torch.std(reshaped_tensor) * new_std + new_mean
+
+        # Reshape the tensor back to its original shape
+        inputs = scaled_tensor.view(inputs.size())
+
         inputs = inputs.unsqueeze(1)
 
         # Forward pass
@@ -185,17 +199,40 @@ for epoch in range(num_epochs):
                 print(f'Parameter: {name}, Gradient: {param.grad}')
         '''
         optimizer.step()
-    print("AVERAGE LOSS :", avg_loss)
+    print("AVERAGE LOSS :", avg_loss/i)
 
-# Testing loop
-model.eval()  # Set the model to evaluation mode
-with torch.no_grad():
-    for batch in test_dataloader:
-        # Move the batch to the device (e.g., GPU)
-        inputs = batch.to(device)
+    # Testing loop
+    model.eval()  # Set the model to evaluation mode
+    valid_loss = 0
+    with torch.no_grad():
+        for batch, target in tqdm(test_dataloader):
+            # Move the batch to the device (e.g., GPU)
+        
+            inputs = batch.to(device)
+            # Define new mean and std
+            new_mean = 0
+            new_std = 1
 
-        # Forward pass
-        outputs = model(inputs)
+            # Reshape the tensor for mean and std calculations
+            reshaped_tensor = inputs.view(-1, inputs.size(-1))
+
+            # Scale the tensor
+            scaled_tensor = (reshaped_tensor - torch.mean(reshaped_tensor)) / torch.std(reshaped_tensor) * new_std + new_mean
+
+            # Reshape the tensor back to its original shape
+            inputs = scaled_tensor.view(inputs.size())
+
+            inputs = inputs.unsqueeze(1)
+
+            # Forward pass
+            outputs = model(inputs)
+        
+            # Compute the loss
+            loss = criterion(outputs, target)  # You need to define 'target' based on your task
+            valid_loss += loss
+
+        print("TEST LOSS: -----", valid_loss)
+    model.train()
 
 
 '''

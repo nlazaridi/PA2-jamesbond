@@ -4,7 +4,7 @@ import numpy as np
 import shutil
 
 def get_dataset_name(file_name_with_dir):
-    filename_without_dir = file_name_with_dir.split('/')[-1] #If you use windows change / with \\
+    filename_without_dir = file_name_with_dir.split('\\')[-1] #If you use windows change / with \\
     temp = filename_without_dir.split('_')[:-1]
     dataset_name = "_".join(temp)
     return dataset_name
@@ -47,8 +47,8 @@ def create_segments_and_save(input_folder, output_folder, window_size, overlap_p
                 os.remove(file_path)       
 
 # Example usage
-input_folder = "/Users/iacopoermacora/Final Project data global_min_max_scaling"
-output_folder = "/Users/iacopoermacora/Final Project data global_min_max_scaling segmented"
+input_folder = 'C:/Users/lazar/OneDrive/Υπολογιστής/test/Final Project data min_max_scaling'
+output_folder = 'C:/Users/lazar/OneDrive/Υπολογιστής/test/Final Project data min_max_scaling segmented'
 window_size = 160  # 0.8 seconds
 overlap_percentage = 40  # 40% overlap
 
