@@ -10,6 +10,9 @@ import time
 import logging
 import random
 import numpy as np
+from torch.utils.data import DataLoader, Dataset
+import h5py
+from tqdm import tqdm
 
 os.makedirs('./examples_vanilla_torch/log', exist_ok=True)
 logger = logging.getLogger('Training models with vanilla PyTorch')
@@ -81,12 +84,121 @@ def valid(dataloader, model, loss_fn):
 
     return correct, loss
 
+def get_dataset_name(file_name_with_dir):
+    filename_without_dir = file_name_with_dir.split('\\')[-1] #If you use windows change / with \\
+    temp = filename_without_dir.split('_')[:-1]
+    dataset_name = "_".join(temp)
+    return dataset_name
+
+class CustomDataset(Dataset):
+    def __init__(self, root_dir, file_extension='.h5'):
+        self.root_dir = root_dir
+        self.file_extension = file_extension
+        self.file_list = [file for file in os.listdir(root_dir) if file.endswith(file_extension)]
+        
+    def __len__(self):
+        return len(self.file_list)
+    
+    def __getitem__(self, idx):
+        file_path = os.path.join(self.root_dir, self.file_list[idx])
+        
+        with h5py.File(file_path, 'r') as file:
+            
+            dataset_name = get_dataset_name(file_path)
+            matrix = file.get(dataset_name)[()]
+            signals = torch.tensor(matrix, dtype=torch.float32)
+
+        if dataset_name.startswith('rest'):
+            target = torch.Tensor([1,0,0,0])
+        elif dataset_name.startswith('task_motor'):
+            target = torch.Tensor([0,1,0,0])
+        elif dataset_name.startswith('task_story_math'):
+            target = torch.Tensor([0,0,1,0])
+        elif dataset_name.startswith('task_working_memory'):
+            target = torch.Tensor([0,0,0,1])
+
+        return signals, target
+
 loss_fn = nn.CrossEntropyLoss()
 batch_size = 16 # Hyperparam?
 
 test_accs = []
 test_losses = []
 
+# Define your data directories
+train_data_dir = 'C:/Users/lazar/OneDrive/Υπολογιστής/test/Final Project data min_max_scaling segmented/Intra/train'
+test_data_dir = 'C:/Users/lazar/OneDrive/Υπολογιστής/test/Final Project data min_max_scaling segmented/Intra/test'
+
+# Create instances of the dataset
+train_dataset = CustomDataset(train_data_dir)
+test_dataset = CustomDataset(test_data_dir)
+
+# Create DataLoader instances
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+
+# initialize model
+model = EEGNet(chunk_size=160,
+            num_electrodes=248,
+            dropout=0.25, # Hyperparam? -> Consider changing it based on results
+            kernel_1=8, # Hyperparam 8, 16, 32
+            kernel_2=2, # Hyperparam 2, 4
+            F1=8, # Default 8, Hyperparam?
+            F2=16, # Default 16, Hyperparam?
+            D=2, # Default 2, Hyperparam?
+            num_classes=4).to(device)
+
+# initialize optimizer
+#optimizer = torch.optim.Adam(model.parameters(),
+#                                lr=1e-3)  # official: weight_decay=5e-1
+optimizer = torch.optim.SGD(model.parameters(),lr=1e-3)
+
+criterion = torch.nn.MSELoss()
+
+num_epochs=50
+# Training loop
+for epoch in range(num_epochs):
+    avg_loss = 0
+    i=0
+    for batch, target in tqdm(train_dataloader):
+        # Move the batch to the device (e.g., GPU)
+        inputs = batch.to(device)
+        inputs = inputs.unsqueeze(1)
+
+        # Forward pass
+        outputs = model(inputs)
+     
+        # Compute the loss
+        loss = criterion(outputs, target)  # You need to define 'target' based on your task
+       
+        avg_loss += loss
+        i+=1
+        #print(loss)
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        # Print gradients
+        '''
+        for name, param in model.named_parameters():
+            if param.grad is not None:
+                print(f'Parameter: {name}, Gradient: {param.grad}')
+        '''
+        optimizer.step()
+    print("AVERAGE LOSS :", avg_loss)
+
+# Testing loop
+model.eval()  # Set the model to evaluation mode
+with torch.no_grad():
+    for batch in test_dataloader:
+        # Move the batch to the device (e.g., GPU)
+        inputs = batch.to(device)
+
+        # Forward pass
+        outputs = model(inputs)
+
+
+'''
 for i, (train_dataset, test_dataset) in enumerate(k_fold.split(dataset)):
     # initialize model
     model = EEGNet(chunk_size=32,
@@ -140,3 +252,4 @@ for i, (train_dataset, test_dataset) in enumerate(k_fold.split(dataset)):
 # log the average test result on cross-validation datasets
 # logger.info(f"Test Error: \n Accuracy: {100*np.mean(test_accs):>0.1f}%, Avg loss: {np.mean(test_losses):>8f}")
 
+'''
