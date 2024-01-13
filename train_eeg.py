@@ -60,7 +60,7 @@ def train(dataloader, model, loss_fn, optimizer):
 
         if batch_idx % 100 == 0:
             loss, current = loss.item(), batch_idx * len(X)
-            # logger.info(f"Loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            logger.info(f"Loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
     return loss
 
@@ -80,7 +80,7 @@ def valid(dataloader, model, loss_fn):
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
     loss /= num_batches
     correct /= size
-    # logger.info(f"Valid Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {loss:>8f} \n")
+    logger.info(f"Valid Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {loss:>8f} \n")
 
     return correct, loss
 
@@ -244,12 +244,12 @@ for i, (train_dataset, test_dataset) in enumerate(k_fold.split(dataset)):
     test_acc, test_loss = valid(test_loader, model, loss_fn)
 
     # log the test result
-    # logger.info(f"Test Error {i}: \n Accuracy: {(100*test_acc):>0.1f}%, Avg loss: {test_loss:>8f}")
+    logger.info(f"Test Error {i}: \n Accuracy: {(100*test_acc):>0.1f}%, Avg loss: {test_loss:>8f}")
 
     test_accs.append(test_acc)
     test_losses.append(test_loss)
 
 # log the average test result on cross-validation datasets
-# logger.info(f"Test Error: \n Accuracy: {100*np.mean(test_accs):>0.1f}%, Avg loss: {np.mean(test_losses):>8f}")
+logger.info(f"Test Error: \n Accuracy: {100*np.mean(test_accs):>0.1f}%, Avg loss: {np.mean(test_losses):>8f}")
 
 '''
