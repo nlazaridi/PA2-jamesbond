@@ -120,7 +120,7 @@ class CustomDataset(Dataset):
         return signals, target
 
 loss_fn = nn.CrossEntropyLoss()
-batch_size = 16 # Hyperparam?
+batch_size = 64 # Hyperparam?
 
 test_accs = []
 test_losses = []
@@ -141,7 +141,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # initialize model
 model = EEGNet(chunk_size=160,
             num_electrodes=248,
-            dropout=0.25, # Hyperparam? -> Consider changing it based on results
+            dropout=0.5, # Hyperparam? -> Consider changing it based on results
             kernel_1=8, # Hyperparam 8, 16, 32
             kernel_2=2, # Hyperparam 2, 4
             F1=8, # Default 8, Hyperparam?
