@@ -141,7 +141,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # initialize model
 model = EEGNet(chunk_size=160,
             num_electrodes=248,
-            dropout=0.5, # Hyperparam? -> Consider changing it based on results
+            dropout=0.95, # Hyperparam? -> Consider changing it based on results
             kernel_1=8, # Hyperparam 8, 16, 32
             kernel_2=2, # Hyperparam 2, 4
             F1=8, # Default 8, Hyperparam?
@@ -160,6 +160,7 @@ num_epochs=50
 # Training loop
 for epoch in range(num_epochs):
     avg_loss = 0
+    avg_acc = 0
     i=0
     for batch, target in tqdm(train_dataloader):
         # Move the batch to the device (e.g., GPU)
@@ -185,7 +186,19 @@ for epoch in range(num_epochs):
      
         # Compute the loss
         loss = criterion(outputs, target)  # You need to define 'target' based on your task
-       
+        
+        # Step 1: Decode one-hot-encoded predictions and true labels
+        predicted_classes = torch.argmax(outputs, axis=1)
+        true_classes = torch.argmax(target, axis=1)
+
+        # Step 2: Compare predictions to true labels
+        correct_predictions = torch.sum(predicted_classes == true_classes).item()
+
+        # Step 3: Calculate accuracy
+        total_predictions = len(predicted_classes)
+        accuracy = correct_predictions / total_predictions
+        
+        avg_acc+=accuracy
         avg_loss += loss
         i+=1
         #print(loss)
@@ -200,10 +213,13 @@ for epoch in range(num_epochs):
         '''
         optimizer.step()
     print("AVERAGE LOSS :", avg_loss/i)
+    print("AVERAGE ACC :", avg_acc/i)
 
     # Testing loop
     model.eval()  # Set the model to evaluation mode
     valid_loss = 0
+    valid_acc = 0
+    j=0
     with torch.no_grad():
         for batch, target in tqdm(test_dataloader):
             # Move the batch to the device (e.g., GPU)
@@ -229,9 +245,24 @@ for epoch in range(num_epochs):
         
             # Compute the loss
             loss = criterion(outputs, target)  # You need to define 'target' based on your task
-            valid_loss += loss
 
-        print("TEST LOSS: -----", valid_loss)
+            # Step 1: Decode one-hot-encoded predictions and true labels
+            predicted_classes = torch.argmax(outputs, axis=1)
+            true_classes = torch.argmax(target, axis=1)
+
+            # Step 2: Compare predictions to true labels
+            correct_predictions = torch.sum(predicted_classes == true_classes).item()
+
+            # Step 3: Calculate accuracy
+            total_predictions = len(predicted_classes)
+            accuracy = correct_predictions / total_predictions
+            
+            valid_acc+=accuracy
+
+            valid_loss += loss
+            j+=1
+        print("TEST LOSS: -----", valid_loss/j)
+        print("TEST ACC: -----", valid_acc/j)
     model.train()
 
 
